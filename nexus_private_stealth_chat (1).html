@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#070a10] text-gray-100 antialiased selection:bg-cyan-500 selection:text-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title id="appDocumentTitle">Nexus Private Stealth Chat</title>
+
+  <!-- PWA Web App Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#070a10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfeff',
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+              900: '#164e63',
+            },
+            dark: {
+              base: '#070a10',
+              card: '#0d1322',
+              surface: '#121a2d',
+              border: 'rgba(255, 255, 255, 0.08)'
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Custom Glassmorphism & Animations */
+    .glass-card {
+      background: rgba(13, 19, 34, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-panel {
+      background: rgba(18, 26, 45, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .glass-input {
+      background: rgba(7, 10, 16, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-input:focus {
+      border-color: rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(6, 182, 212, 0.4);
+    }
+
+    /* Keyframe animations */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .animate-glow {
+      animation: pulseGlow 4s infinite ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake-err {
+      animation: shake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="h-full w-full overflow-hidden bg-[#070a10] text-gray-100 flex flex-col font-sans">
+
+  <!-- APP AVATAR ASSET CONSTANT -->
+  <!-- User-provided stealth avatar image -->
+  <script>
+    const APP_AVATAR_URL = "https://i.ibb.co/60BqK6y/bdx3eexigmcg1.jpg";
+  </script>
+
+  <!-- ======================================================== -->
+  <!-- 1. PASSCODE / VAULT LOCK SCREEN                          -->
+  <!-- ======================================================== -->
+  <div id="lockScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#070a10]/95 backdrop-blur-2xl transition-opacity duration-500">
+    
+    <!-- Background Ambient Glow -->
+    <div class="absolute w-72 h-72 bg-cyan-500/20 rounded-full blur-3xl animate-glow pointer-events-none"></div>
+
+    <div id="lockCard" class="glass-card w-full max-w-sm p-6 sm:p-8 rounded-3xl shadow-2xl text-center flex flex-col items-center relative overflow-hidden">
+      
+      <!-- Vault Icon / Avatar Branding -->
+      <div class="relative mb-4 group">
+        <div class="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+        <div class="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-cyan-400/30 bg-gray-900 flex items-center justify-center">
+          <img src="https://i.ibb.co/60BqK6y/bdx3eexigmcg1.jpg" alt="Nexus Vault Avatar" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/150x150/0f172a/06b6d4?text=Vault'">
+        </div>
+      </div>
+
+      <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight mb-1">Nexus Stealth Vault</h1>
+      <p class="text-xs text-cyan-300/70 mb-6">Enter key passcode to decrypt room feed</p>
+
+      <!-- Pin Indicator Dots -->
+      <div class="flex gap-4 mb-8" id="pinDotsContainer">
+        <div class="pin-dot w-4 h-4 rounded-full border-2 border-white/20 transition-all duration-200"></div>
+        <div class="pin-dot w-4 h-4 rounded-full border-2 border-white/20 transition-all duration-200"></div>
+        <div class="pin-dot w-4 h-4 rounded-full border-2 border-white/20 transition-all duration-200"></div>
+        <div class="pin-dot w-4 h-4 rounded-full border-2 border-white/20 transition-all duration-200"></div>
+      </div>
+
+      <!-- Pin Keypad -->
+      <div class="grid grid-cols-3 gap-3 w-full max-w-[240px]">
+        <button onclick="appendPin('1')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">1</button>
+        <button onclick="appendPin('2')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">2</button>
+        <button onclick="appendPin('3')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">3</button>
+        <button onclick="appendPin('4')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">4</button>
+        <button onclick="appendPin('5')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">5</button>
+        <button onclick="appendPin('6')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">6</button>
+        <button onclick="appendPin('7')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">7</button>
+        <button onclick="appendPin('8')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">8</button>
+        <button onclick="appendPin('9')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">9</button>
+        <button onclick="clearPin()" class="h-14 rounded-2xl glass-panel text-xs text-rose-400 font-semibold hover:bg-rose-500/20 active:scale-95 transition-all">CLEAR</button>
+        <button onclick="appendPin('0')" class="h-14 rounded-2xl glass-panel text-lg font-semibold hover:bg-white/10 active:scale-95 transition-all text-white">0</button>
+        <button onclick="verifyPin()" class="h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:brightness-110 active:scale-95 transition-all flex items-center justify-center">
+          <i class="fa-solid fa-key text-sm"></i>
+        </button>
+      </div>
+
+      <p class="mt-6 text-[10px] text-gray-500 tracking-wider uppercase">Default Passcode: <span class="text-cyan-400 font-mono font-bold">1234</span></p>
+    </div>
+  </div>
+
+
+  <!-- ======================================================== -->
+  <!-- 2. MAIN APPLICATION INTERFACE CONTAINER                  -->
+  <!-- ======================================================== -->
+  <div class="w-full h-full flex flex-col max-w-7xl mx-auto p-2 sm:p-4 lg:p-6 gap-3 sm:gap-4 overflow-hidden">
+    
+    <!-- TOP NAVBAR HEADER -->
+    <header class="glass-card rounded-2xl px-4 py-3 flex items-center justify-between shrink-0 shadow-lg border border-white/10">
+      
+      <!-- Left Info Header -->
+      <div class="flex items-center gap-3">
+        <div class="relative shrink-0">
+          <img src="https://i.ibb.co/60BqK6y/bdx3eexigmcg1.jpg" alt="Vault Icon" class="w-10 h-10 rounded-xl object-cover border border-cyan-400/40">
+          <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#070a10] rounded-full"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-sm sm:text-base text-white tracking-wide">Group Vault: <span class="text-cyan-400">#squad-vault</span></h1>
+          </div>
+          <div class="flex items-center gap-2 sm:gap-4 text-[11px] text-gray-400">
+            <span class="flex items-center gap-1.5 text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="onlineCountText">3 Members Online</span>
+            </span>
+            <span class="hidden sm:inline-block text-gray-600">•</span>
+            <span class="hidden sm:flex items-center gap-1 text-gray-300">
+              <i class="fa-regular fa-clock text-cyan-400"></i> Auto-Delete Active
+            </span>
+            <span class="hidden md:inline-block text-gray-600">•</span>
+            <span class="hidden md:flex items-center gap-1 text-gray-300">
+              <i class="fa-solid fa-shield-halved text-cyan-400"></i> Zero Tracking
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center gap-2">
+        
+        <!-- Mobile Toggle Button for Room Members Modal/Drawer -->
+        <button onclick="toggleMobileMembersDrawer()" class="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-cyan-300 font-medium hover:bg-white/10 transition active:scale-95">
+          <i class="fa-solid fa-users text-cyan-400"></i>
+          <span class="hidden xs:inline">Members</span>
+        </button>
+
+        <button onclick="clearChatHistory()" title="Clear Chat History" class="p-2.5 rounded-xl glass-panel text-gray-400 hover:text-amber-400 hover:bg-white/10 transition active:scale-95">
+          <i class="fa-solid fa-broom text-xs"></i>
+        </button>
+
+        <button onclick="lockVault()" title="Lock Vault" class="p-2.5 rounded-xl glass-panel text-gray-400 hover:text-rose-400 hover:bg-white/10 transition active:scale-95">
+          <i class="fa-solid fa-lock text-xs"></i>
+        </button>
+      </div>
+    </header>
+
+
+    <!-- MAIN DASHBOARD CONTENT (DESKTOP: SIDE-BY-SIDE | MOBILE: FLUID CHAT + DRAWER) -->
+    <div class="flex-1 flex gap-4 overflow-hidden relative">
+      
+      <!-- ======================================================== -->
+      <!-- 3. ROOM MEMBERS SIDEBAR (DESKTOP: SIDEBAR | MOBILE: DRAWER) -->
+      <!-- ======================================================== -->
+      <aside id="membersDrawer" class="fixed inset-y-0 right-0 z-40 w-80 bg-[#0d1322] p-4 flex flex-col gap-4 transform translate-x-full transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-72 lg:bg-transparent lg:p-0 shrink-0">
+        
+        <!-- Mobile Drawer Close Header -->
+        <div class="flex items-center justify-between lg:hidden pb-2 border-b border-white/10">
+          <h2 class="font-bold text-sm text-white flex items-center gap-2">
+            <i class="fa-solid fa-users text-cyan-400"></i> Room Members & DMs
+          </h2>
+          <button onclick="toggleMobileMembersDrawer()" class="p-2 text-gray-400 hover:text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Room Members Container Card -->
+        <div class="glass-card rounded-2xl p-4 flex-1 flex flex-col gap-3 overflow-hidden border border-white/10">
+          
+          <div class="flex items-center justify-between pb-2 border-b border-white/5">
+            <span class="text-xs font-bold text-gray-300 tracking-wider uppercase">Active Members</span>
+            <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-mono">3 Live</span>
+          </div>
+
+          <!-- Members List -->
+          <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="membersList">
+            
+            <!-- Member 1: Vault Master (User Avatar) -->
+            <div class="flex items-center justify-between p-2.5 rounded-xl glass-panel hover:bg-white/10 transition cursor-pointer">
+              <div class="flex items-center gap-2.5">
+                <div class="relative">
+                  <img src="https://i.ibb.co/60BqK6y/bdx3eexigmcg1.jpg" alt="Vault Master" class="w-9 h-9 rounded-xl object-cover border border-cyan-400/50">
+                  <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0d1322] rounded-full"></span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                    Vault Master
+                    <span class="text-[9px] bg-cyan-500/30 text-cyan-300 px-1.5 py-0.2 rounded font-normal">You</span>
+                  </h4>
+                  <p class="text-[10px] text-gray-400">Admin • Online</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Member 2: Sarah -->
+            <div class="flex items-center justify-between p-2.5 rounded-xl glass-panel hover:bg-white/10 transition cursor-pointer" onclick="quickMention('Sarah')">
+              <div class="flex items-center gap-2.5">
+                <div class="relative">
+                  <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white text-xs border border-white/20">
+                    S
+                  </div>
+                  <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0d1322] rounded-full"></span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Sarah</h4>
+                  <p class="text-[10px] text-gray-400">Secure Peer</p>
+                </div>
+              </div>
+              <button class="text-[10px] bg-white/5 hover:bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-lg border border-white/10">DM</button>
+            </div>
+
+            <!-- Member 3: David -->
+            <div class="flex items-center justify-between p-2.5 rounded-xl glass-panel hover:bg-white/10 transition cursor-pointer" onclick="quickMention('David')">
+              <div class="flex items-center gap-2.5">
+                <div class="relative">
+                  <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center font-bold text-white text-xs border border-white/20">
+                    D
+                  </div>
+                  <span class="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0d1322] rounded-full"></span>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">David</h4>
+                  <p class="text-[10px] text-gray-400">Secure Peer</p>
+                </div>
+              </div>
+              <button class="text-[10px] bg-white/5 hover:bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-lg border border-white/10">DM</button>
+            </div>
+
+          </div>
+
+          <!-- Security Status Widget -->
+          <div class="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 flex flex-col gap-1.5">
+            <div class="flex items-center gap-2 text-xs font-semibold text-cyan-300">
+              <i class="fa-solid fa-user-shield text-cyan-400"></i> Zero Tracking Guard
+            </div>
+            <p class="text-[10px] text-gray-400 leading-relaxed">
+              IP logging disabled. GPS coordinates scrubbed. End-to-end memory encryption active.
+            </p>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Drawer Overlay for Mobile -->
+      <div id="drawerOverlay" onclick="toggleMobileMembersDrawer()" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
+
+
+      <!-- ======================================================== -->
+      <!-- 4. MAIN CHAT CONTAINER (100% MOBILE FLUID WIDTH)         -->
+      <!-- ======================================================== -->
+      <main class="flex-1 glass-card rounded-2xl flex flex-col overflow-hidden border border-white/10 w-full">
+        
+        <!-- MESSAGES FEED AREA -->
+        <div id="chatMessagesFeed" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+          
+          <!-- System Welcome Banner -->
+          <div class="flex justify-center my-2">
+            <div class="glass-panel px-4 py-1.5 rounded-full text-[11px] text-cyan-300/80 border border-cyan-500/20 flex items-center gap-2">
+              <i class="fa-solid fa-lock text-cyan-400 text-xs"></i>
+              <span>Vault session initialized. All messages auto-expire.</span>
+            </div>
+          </div>
+
+          <!-- Message 1: Vault Master -->
+          <div class="flex items-start gap-3 max-w-[88%] sm:max-w-[75%]">
+            <img src="https://i.ibb.co/60BqK6y/bdx3eexigmcg1.jpg" alt="Vault Master" class="w-8 h-8 rounded-xl object-cover shrink-0 border border-cyan-400/40">
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-cyan-400">Vault Master</span>
+                <span class="text-[10px] text-gray-500">10:15 AM</span>
+              </div>
+              <div class="glass-panel p-3 rounded-2xl rounded-tl-none text-xs text-gray-200 leading-relaxed border border-white/10">
+                Welcome to Nexus Stealth Vault! Fully responsive on Android, iOS, & Laptops.
+              </div>
+            </div>
+          </div>
+
+          <!-- Message 2: Sarah -->
+          <div class="flex items-start gap-3 max-w-[88%] sm:max-w-[75%]">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white text-xs border border-white/20 shrink-0">
+              S
+            </div>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-purple-300">Sarah</span>
+                <span class="text-[10px] text-gray-500">10:16 AM</span>
+              </div>
+              <div class="glass-panel p-3 rounded-2xl rounded-tl-none text-xs text-gray-200 leading-relaxed border border-white/10">
+                Awesome! The custom avatar icon and mobile drawer are working perfectly now.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SIMULATED TYPING INDICATOR (HIDDEN BY DEFAULT) -->
+        <div id="typingIndicator" class="px-4 py-1 hidden">
+          <div class="flex items-center gap-2 text-xs text-cyan-400/70">
+            <i class="fa-solid fa-circle-notch fa-spin text-xs"></i>
+            <span id="typingText" class="text-[11px]">Peer is encrypting response...</span>
+          </div>
+        </div>
+
+        <!-- CHAT INPUT CONTROLS BAR -->
+        <div class="p-2 sm:p-3 bg-dark-surface/90 border-t border-white/10 flex flex-col gap-2 shrink-0">
+          
+          <form id="chatForm" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
+            
+            <!-- Quick Action Buttons -->
+            <button type="button" onclick="triggerFileUpload()" class="p-2.5 rounded-xl glass-panel text-gray-400 hover:text-cyan-400 transition active:scale-95 shrink-0" title="Attach file">
+              <i class="fa-solid fa-paperclip text-sm"></i>
+            </button>
+            
+            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelected(event)">
+
+            <!-- Text Area Input -->
+            <div class="flex-1 relative">
+              <input type="text" id="messageInput" placeholder="Message encrypted room..." autocomplete="off" class="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none transition">
+            </div>
+
+            <!-- Send Message Button -->
+            <button type="submit" class="p-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-xs hover:brightness-110 active:scale-95 transition shrink-0 flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+              <span class="hidden sm:inline">Send</span>
+            </button>
+          </form>
+
+          <!-- Input Footer Micro Tool Buttons -->
+          <div class="flex items-center justify-between px-1 text-[11px] text-gray-400">
+            <div class="flex items-center gap-3">
+              <button type="button" onclick="quickEmoji('🔒')" class="hover:text-cyan-400 transition">🔒 Lock</button>
+              <button type="button" onclick="quickEmoji('⚡')" class="hover:text-cyan-400 transition">⚡ Stealth</button>
+              <button type="button" onclick="quickEmoji('👍')" class="hover:text-cyan-400 transition">👍 Got it</button>
+            </div>
+            <div class="text-[10px] text-gray-500 font-mono">
+              E2EE Active
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================== -->
+  <!-- 5. JAVASCRIPT LOGIC & INTERACTIONS                       -->
+  <!-- ======================================================== -->
+  <script>
+    // State Variables
+    let currentPin = "";
+    const CORRECT_PIN = "1234";
+
+    // Initialize Page
+    window.addEventListener('load', () => {
+      // Auto focus lock screen if visible
+      const lockScreen = document.getElementById('lockScreen');
+      if (lockScreen && !lockScreen.classList.contains('hidden')) {
+        updatePinDots();
+      }
+    });
+
+    // PASSCODE VAULT LOGIC
+    function appendPin(num) {
+      if (currentPin.length < 4) {
+        currentPin += num;
+        updatePinDots();
+        if (currentPin.length === 4) {
+          setTimeout(verifyPin, 150);
+        }
+      }
+    }
+
+    function clearPin() {
+      currentPin = "";
+      updatePinDots();
+    }
+
+    function updatePinDots() {
+      const dots = document.querySelectorAll('.pin-dot');
+      dots.forEach((dot, index) => {
+        if (index < currentPin.length) {
+          dot.classList.add('bg-cyan-400', 'border-cyan-400', 'shadow-[0_0_8px_rgba(6,182,212,0.8)]');
+          dot.classList.remove('border-white/20');
+        } else {
+          dot.classList.remove('bg-cyan-400', 'border-cyan-400', 'shadow-[0_0_8px_rgba(6,182,212,0.8)]');
+          dot.classList.add('border-white/20');
+        }
+      });
+    }
+
+    function verifyPin() {
+      const lockCard = document.getElementById('lockCard');
+      const lockScreen = document.getElementById('lockScreen');
+
+      if (currentPin === CORRECT_PIN) {
+        lockScreen.classList.add('opacity-0');
+        setTimeout(() => {
+          lockScreen.classList.add('hidden');
+        }, 500);
+      } else {
+        lockCard.classList.add('shake-err');
+        setTimeout(() => {
+          lockCard.classList.remove('shake-err');
+          clearPin();
+        }, 400);
+      }
+    }
+
+    function lockVault() {
+      clearPin();
+      const lockScreen = document.getElementById('lockScreen');
+      lockScreen.classList.remove('hidden');
+      setTimeout(() => {
+        lockScreen.classList.remove('opacity-0');
+      }, 10);
+    }
+
+    // MOBILE MEMBERS DRAWER TOGGLE
+    function toggleMobileMembersDrawer() {
+      const drawer = document.getElementById('membersDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+
+      if (drawer.classList.contains('translate-x-full')) {
+        drawer.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+      } else {
+        drawer.classList.add('translate-x-full');
+        overlay.classList.add('hidden');
+      }
+    }
+
+    // CHAT MESSAGE FUNCTIONALITY
+    function handleSendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Append User Message
+      appendMessage({
+        sender: 'Vault Master',
+        avatar: APP_AVATAR_URL,
+        time: timeStr,
+        text: text,
+        isUser: true
+      });
+
+      input.value = '';
+
+      // Trigger Auto simulated peer reply for test preview
+      triggerSimulatedResponse();
+    }
+
+    function appendMessage({ sender, avatar, time, text, isUser }) {
+      const feed = document.getElementById('chatMessagesFeed');
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `flex items-start gap-3 max-w-[88%] sm:max-w-[75%] ${isUser ? 'ml-auto flex-row-reverse' : ''}`;
+
+      const avatarHtml = avatar 
+        ? `<img src="${avatar}" alt="${sender}" class="w-8 h-8 rounded-xl object-cover shrink-0 border border-cyan-400/40">`
+        : `<div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white text-xs border border-white/20 shrink-0">${sender[0]}</div>`;
+
+      const bgStyle = isUser 
+        ? 'bg-gradient-to-r from-cyan-600/80 to-blue-600/80 rounded-tr-none text-white' 
+        : 'glass-panel rounded-tl-none text-gray-200';
+
+      msgDiv.innerHTML = `
+        ${avatarHtml}
+        <div class="flex flex-col gap-1 ${isUser ? 'items-end' : ''}">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold ${isUser ? 'text-cyan-300' : 'text-purple-300'}">${sender}</span>
+            <span class="text-[10px] text-gray-500">${time}</span>
+          </div>
+          <div class="${bgStyle} p-3 rounded-2xl text-xs leading-relaxed border border-white/10 shadow-md">
+            ${escapeHtml(text)}
+          </div>
+        </div>
+      `;
+
+      feed.appendChild(msgDiv);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function triggerSimulatedResponse() {
+      const indicator = document.getElementById('typingIndicator');
+      indicator.classList.remove('hidden');
+
+      const responses = [
+        "Received and decrypted.",
+        "Vault connection stable.",
+        "Zero-knowledge proof confirmed.",
+        "Got it! Standing by."
+      ];
+
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        appendMessage({
+          sender: 'Sarah',
+          avatar: null,
+          time: timeStr,
+          text: randomResp,
+          isUser: false
+        });
+      }, 1500);
+    }
+
+    function clearChatHistory() {
+      const feed = document.getElementById('chatMessagesFeed');
+      feed.innerHTML = `
+        <div class="flex justify-center my-2">
+          <div class="glass-panel px-4 py-1.5 rounded-full text-[11px] text-cyan-300/80 border border-cyan-500/20 flex items-center gap-2">
+            <i class="fa-solid fa-broom text-cyan-400 text-xs"></i>
+            <span>Chat history cleared locally.</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function quickMention(name) {
+      const input = document.getElementById('messageInput');
+      input.value = `@${name} ` + input.value;
+      input.focus();
+      if (window.innerWidth < 1024) {
+        toggleMobileMembersDrawer();
+      }
+    }
+
+    function quickEmoji(emoji) {
+      const input = document.getElementById('messageInput');
+      input.value += ` ${emoji}`;
+      input.focus();
+    }
+
+    function triggerFileUpload() {
+      document.getElementById('fileInput').click();
+    }
+
+    function handleFileSelected(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        appendMessage({
+          sender: 'Vault Master',
+          avatar: APP_AVATAR_URL,
+          time: timeStr,
+          text: `📎 Attached Encrypted File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+          isUser: true
+        });
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
